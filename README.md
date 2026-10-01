@@ -6,7 +6,7 @@ Finto sistema **CUP** per sviluppare e testare reCUPera senza il CUP reale: agen
 
 - **Database:** progetto Supabase `recupera` (condiviso con Prenota).
   - Tabelle `public.slots`, `public.appointments`, `public.waiting_list`, `public.cancellation_events`, `public.notifications` e funzioni `book_available_slot` / `cancel_appointment_and_reallocate`: create dal **team Prenota**, il test-server le popola e le usa senza cambiarne la struttura.
-  - Schema `test_server` (non esposto dall'API Supabase): admin, catalogo, dataset `monitoraggio`, pazienti fittizi, log delle disdette, viste `prenotazioni`, `pressione`, `confronto_dataset`, funzioni `disdici_casuale`, `crea_prenotazione_prova`, `carico_strutture`.
+  - Schema `test_server` (non esposto dall'API Supabase): admin, catalogo, vista `monitoraggio` (dataset sincronizzato), pazienti fittizi, log delle disdette, viste `prenotazioni`, `pressione`, `confronto_dataset`, funzioni `disdici_casuale`, `crea_prenotazione_prova`, `carico_strutture`.
 - **Server:** Node.js 22 + Express 5, `pg` diretto al database, `zod` per la validazione, JWT per le sessioni admin.
 - **Frontend di test:** un solo file `public/index.html` (HTML, CSS e JS senza framework), servito dallo stesso server.
 
@@ -101,7 +101,7 @@ curl -s -X POST localhost:3001/api/v1/test/disdici-casuale -H "authorization: Be
 Migrazioni in `supabase/migrations/` (già applicate al progetto `recupera`), poi i seed in ordine:
 
 1. `supabase/seed/01_catalogo_admin_pazienti.sql`: ASL, prestazioni, strutture, pazienti fittizi.
-2. `supabase/seed/02_monitoraggio.sql`: il dataset completo (414 righe, 6 ASL, 69 prestazioni).
+2. Il dataset non ha più un seed: `test_server.monitoraggio` è una vista sulla settimana `parametri.settimana_dataset` dei dati sincronizzati da dati.puglia.it (migrazione `20261001200000_monitoraggio_vista.sql`).
 3. `supabase/seed/03_offerta.sql`: offerta calibrata sul dataset (slot al giorno e probabilità di prenotazione).
 4. `supabase/seed/04_slot_prenotazioni.sql`: slot e prenotazioni, un anno alla volta per il timeout di 2 minuti: `psql "$DATABASE_URL" -v anno=2026 -f supabase/seed/04_slot_prenotazioni.sql` (poi 2027, 2028).
 

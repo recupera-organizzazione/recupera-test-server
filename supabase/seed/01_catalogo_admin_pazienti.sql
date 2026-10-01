@@ -1,6 +1,7 @@
 -- Seed 1/4: catalogo Regione Puglia, pazienti fittizi.
 -- Gli admin non si creano qui: sono condivisi con la dashboard (public.admin_users, vedi README).
--- Ordine: 01 catalogo, 02 dataset, 03 offerta, 04 slot e prenotazioni (dopo tutte le migrazioni).
+-- Ordine: 01 catalogo, 03 offerta, 04 slot e prenotazioni (dopo tutte le migrazioni; il dataset
+-- arriva dalla sync con dati.puglia.it, vedi README).
 -- Non idempotente: per rigenerare usa prima supabase/seed/reset.sql.
 
 -- ASL Puglia (codici del dataset Min. Salute, come in recupera-dashboard).
