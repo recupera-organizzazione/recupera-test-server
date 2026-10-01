@@ -13,4 +13,7 @@ export const config = {
   jwtSecret: richiesta('JWT_SECRET'),
   jwtScadenza: '8h',
   port: Number(process.env.PORT ?? 3001),
+  // Per il frontend di Prenota su /prenota (login Supabase Auth): URL e chiave anon, pubblica.
+  supabaseUrl: process.env.SUPABASE_URL,
+  supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
 };

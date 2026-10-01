@@ -3,7 +3,9 @@ import { pool } from './db.js';
 import { gestisciErrori, ApiError } from './errors.js';
 import { authRouter } from './routes/auth.js';
 import { catalogoRouter } from './routes/catalogo.js';
+import { prenotaRouter } from './routes/prenota.js';
 import { prenotazioniRouter } from './routes/prenotazioni.js';
+import { slotRouter } from './routes/slot.js';
 import { statisticheRouter } from './routes/statistiche.js';
 import { testRouter } from './routes/test.js';
 
@@ -25,6 +27,11 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+
+// Frontend di Prenota con le sue API (vedi routes/prenota.js); i percorsi relativi richiedono la "/" finale.
+app.use('/prenota', (req, res, next) => (req.originalUrl === '/prenota' ? res.redirect(301, '/prenota/') : next()));
+app.use('/prenota', prenotaRouter);
+
 // Frontend di test (public/index.html)
 app.use(express.static(new URL('../public', import.meta.url).pathname));
 
@@ -36,6 +43,7 @@ app.get('/api/v1/health', async (req, res) => {
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/catalogo', catalogoRouter);
 app.use('/api/v1/prenotazioni', prenotazioniRouter);
+app.use('/api/v1/slot', slotRouter);
 app.use('/api/v1/statistiche', statisticheRouter);
 app.use('/api/v1/test', testRouter);
 

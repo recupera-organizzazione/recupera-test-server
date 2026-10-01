@@ -16,8 +16,9 @@ delete from public.cancellation_events ce using public.appointments a
   where a.id = ce.appointment_id and a.patient_id in (select user_id from fittizi);
 update public.slots set appointment_id = null
   where appointment_id in (select id from public.appointments where patient_id in (select user_id from fittizi));
-delete from public.appointments where patient_id in (select user_id from fittizi);
+-- Prima la lista d'attesa: waiting_list.appointment_id punta alle prenotazioni (vincolo non differibile).
 delete from public.waiting_list where patient_id in (select user_id from fittizi);
+delete from public.appointments where patient_id in (select user_id from fittizi);
 -- Slot senza prenotazioni reali (anche storiche) e senza riferimenti residui.
 delete from public.slots s
   where s.appointment_id is null

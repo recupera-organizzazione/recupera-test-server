@@ -59,6 +59,9 @@ button.pericolo { background: var(--pericolo); border-color: var(--pericolo); }
 button.link { background: none; border: none; color: var(--accento); padding: 0; text-decoration: underline; }
 .tab { background: none; color: var(--testo); border-color: transparent; }
 .tab.attiva { border-color: var(--accento); color: var(--accento); }
+a.tab { padding: 6px 12px; border: 1px solid transparent; border-radius: 6px; text-decoration: none; }
+h3 { margin: 16px 0 8px; font-size: 1rem; }
+.due-colonne { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 
 .filtri { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: end; margin-bottom: 12px; }
 .filtri label { display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
@@ -103,7 +106,9 @@ summary { cursor: pointer; color: var(--accento); margin-bottom: 8px; }
       <nav>
         <button class="tab attiva" data-tab="centri">Centri</button>
         <button class="tab" data-tab="prenotazioni">Prenotazioni</button>
+        <button class="tab" data-tab="slot">Slot liberi</button>
         <button class="tab" data-tab="test">Test disdetta</button>
+        <a class="tab" href="/prenota/" target="_blank" rel="noopener">App Prenota ↗</a>
       </nav>
       <span class="utente"><span id="admin-nome"></span> <button id="logout" class="link">Esci</button></span>
     </header>
@@ -172,7 +177,7 @@ summary { cursor: pointer; color: var(--accento); margin-bottom: 8px; }
               </select>
             </label>
             <label>Prestazione <select name="prestazione" class="sel-prestazione"><option value="">Tutte</option></select></label>
-            <label>Struttura <select name="struttura" id="sel-struttura"><option value="">Tutte</option></select></label>
+            <label>Struttura <select name="struttura" class="sel-struttura"><option value="">Tutte</option></select></label>
             <label>Da <input type="date" name="da"></label>
             <label>A <input type="date" name="a"></label>
             <button type="submit">Cerca</button>
@@ -189,13 +194,58 @@ summary { cursor: pointer; color: var(--accento); margin-bottom: 8px; }
         </div>
       </section>
 
+      <!-- SLOT LIBERI -->
+      <section id="tab-slot" class="pannello" hidden>
+        <div class="card">
+          <h2>Slot liberi</h2>
+          <p class="muted">
+            Slot futuri ancora prenotabili. Le agende sono piene fino a fine 2027 (seed 05): le prime disponibilità
+            sono nel 2028, tranne gli slot liberati da una disdetta, che Prenota deve proporre.
+          </p>
+          <form id="slot-form" class="filtri">
+            <label>Prestazione <select name="prestazione" class="sel-prestazione"><option value="">Tutte</option></select></label>
+            <label>Struttura <select name="struttura" class="sel-struttura"><option value="">Tutte</option></select></label>
+            <label>Da <input type="date" name="da"></label>
+            <label>A <input type="date" name="a"></label>
+            <button type="submit">Cerca</button>
+          </form>
+          <p class="muted" id="slot-totale"></p>
+          <div class="due-colonne">
+            <div>
+              <h3>Per mese</h3>
+              <table>
+                <thead><tr><th>Mese</th><th class="num">Liberi</th></tr></thead>
+                <tbody id="slot-mesi"></tbody>
+              </table>
+            </div>
+            <div>
+              <h3>Prima disponibilità per prestazione</h3>
+              <table>
+                <thead><tr><th>Prestazione</th><th>Primo slot</th><th class="num">Liberi</th></tr></thead>
+                <tbody id="slot-primi"></tbody>
+              </table>
+            </div>
+          </div>
+          <h3>Elenco</h3>
+          <table>
+            <thead><tr><th>Data e ora</th><th>Prestazione</th><th>Struttura</th><th>ASL</th><th>Medico</th><th>Origine</th><th>ID</th></tr></thead>
+            <tbody id="slot-body"></tbody>
+          </table>
+          <div class="pagine">
+            <button id="slot-prec" type="button">← Precedenti</button>
+            <button id="slot-succ" type="button">Successivi →</button>
+          </div>
+        </div>
+      </section>
+
       <!-- TEST -->
       <section id="tab-test" class="pannello" hidden>
         <div class="card">
           <h2>1. Prenotazione di un utente loggato</h2>
           <p class="muted">
-            Finché Prenota non ha il login, crea una prenotazione con l'<em>utente di prova</em>
-            (utente.prova@prenota.recupera.test), che risulta "loggata". Lo slot è tra 30 e 120 giorni.
+            Crea una prenotazione con l'<em>utente di prova</em> (utente.prova@prenota.recupera.test), che risulta
+            "loggata", su una delle prime disponibilità. In alternativa registrati su <a href="/prenota/" target="_blank" rel="noopener">App Prenota</a>
+            e prenota da lì: anche quelle prenotazioni risultano loggate.
           </p>
           <form id="prova-form" class="filtri">
             <label>Prestazione <select name="prestazione" class="sel-prestazione"><option value="">Qualsiasi</option></select></label>
@@ -338,11 +388,12 @@ $('#logout').addEventListener('click', () => {
 });
 
 // --- tab ---
-for (const tab of document.querySelectorAll('.tab')) {
+for (const tab of document.querySelectorAll('button.tab')) {
   tab.addEventListener('click', () => {
-    for (const t of document.querySelectorAll('.tab')) t.classList.toggle('attiva', t === tab);
+    for (const t of document.querySelectorAll('button.tab')) t.classList.toggle('attiva', t === tab);
     for (const p of document.querySelectorAll('.pannello')) p.hidden = p.id !== `tab-${tab.dataset.tab}`;
     if (tab.dataset.tab === 'prenotazioni') caricaPrenotazioni();
+    if (tab.dataset.tab === 'slot') caricaSlot();
     if (tab.dataset.tab === 'test') caricaDisdette();
   });
 }
@@ -431,6 +482,45 @@ $('#pren-form').addEventListener('submit', (e) => {
 });
 $('#pren-prec').addEventListener('click', () => { offsetPren = Math.max(0, offsetPren - LIMITE_PREN); caricaPrenotazioni(); });
 $('#pren-succ').addEventListener('click', () => { offsetPren += LIMITE_PREN; caricaPrenotazioni(); });
+
+// --- slot liberi ---
+let offsetSlot = 0;
+const LIMITE_SLOT = 50;
+const nomeMese = (m) => new Date(`${m}-01T12:00:00`).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+
+async function caricaSlot() {
+  const corpo = $('#slot-body');
+  messaggio(corpo, 7, 'Caricamento…');
+  const params = new URLSearchParams([...new FormData($('#slot-form'))].filter(([, v]) => v !== ''));
+  params.set('limit', LIMITE_SLOT);
+  params.set('offset', offsetSlot);
+  try {
+    const { totale, slot, mesi, primi } = await api(`/slot/liberi?${params}`);
+    $('#slot-totale').textContent = totale
+      ? `${num(totale)} slot liberi · ${num(offsetSlot + 1)}–${num(offsetSlot + slot.length)}`
+      : '';
+    $('#slot-prec').disabled = offsetSlot === 0;
+    $('#slot-succ').disabled = offsetSlot + LIMITE_SLOT >= totale;
+    $('#slot-mesi').replaceChildren(...mesi.map((m) => riga(nomeMese(m.mese), tdNum(num(m.liberi)))));
+    $('#slot-primi').replaceChildren(...primi.map((p) => riga(p.prestazione ?? p.specialty_id, dataOra(p.primo), tdNum(num(p.liberi)))));
+    if (!slot.length) return messaggio(corpo, 7, 'Nessuno slot libero con questi filtri');
+    corpo.replaceChildren(...slot.map((s) =>
+      riga(dataOra(s.starts_at), s.prestazione ?? s.specialty_id, s.struttura ? `${s.struttura} (${s.comune})` : s.facility_id,
+        s.asl ?? '–', s.medico ?? '–',
+        el('td', {}, el('span', { class: `badge ${s.da_disdetta ? 'loggata' : 'fittizia'}` }, s.da_disdetta ? 'da disdetta' : 'agenda')),
+        el('td', { class: 'id' }, s.id))));
+  } catch (err) {
+    messaggio(corpo, 7, err.message);
+  }
+}
+
+$('#slot-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  offsetSlot = 0;
+  conBottone(e.target, caricaSlot);
+});
+$('#slot-prec').addEventListener('click', () => { offsetSlot = Math.max(0, offsetSlot - LIMITE_SLOT); caricaSlot(); });
+$('#slot-succ').addEventListener('click', () => { offsetSlot += LIMITE_SLOT; caricaSlot(); });
 
 // --- test disdetta ---
 function nomePrestazione(id) {
@@ -528,9 +618,10 @@ async function avvia() {
     select.replaceChildren(select.options[0],
       ...catalogo.prestazioni.map((p) => el('option', { value: p.id }, p.descrizione)));
   }
-  const selStruttura = $('#sel-struttura');
-  selStruttura.replaceChildren(selStruttura.options[0],
-    ...catalogo.strutture.map((s) => el('option', { value: s.id }, `${s.nome} (${s.comune})`)));
+  for (const select of document.querySelectorAll('.sel-struttura')) {
+    select.replaceChildren(select.options[0],
+      ...catalogo.strutture.map((s) => el('option', { value: s.id }, `${s.nome} (${s.comune})`)));
+  }
 
   caricaCentri();
   caricaConfronto();

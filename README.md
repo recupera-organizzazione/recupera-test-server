@@ -64,6 +64,15 @@ npm run dev            # http://localhost:3001
 
 **Admin condivisi con la dashboard:** il login legge `public.admin_users` (tabella di `recupera-dashboard`, hash scrypt), quindi lo stesso account entra in entrambi i pannelli. L'account `recupera` ha una password generata, non scritta nel repo: chiedila a chi gestisce il progetto. Non c'è registrazione: un admin nuovo si crea dalla dashboard con `ADMIN_USER=nome ADMIN_PASSWORD='…' npm run create:admin` (in `recupera-dashboard/backend`). `test_server.admin_users` resta solo come anagrafica locale, creata al primo login, per collegare le disdette all'admin.
 
+## App Prenota dentro il test-server (`/prenota/`)
+
+<http://localhost:3001/prenota/> è il frontend di `recupera-prenotazioni` (cartella `public/`), copiato in `public/prenota` con `scripts/importa-prenota.sh` (rende relativi i percorsi assoluti, nient'altro). Le sue API (`/prenota/api/...`, stesso contratto di `recupera-prenotazioni/src/server.js`) sono in `src/routes/prenota.js`: login con Supabase Auth (serve `SUPABASE_URL` e `SUPABASE_ANON_KEY` nel `.env`), prenotazione e disdetta con `public.book_available_slot` e `public.cancel_appointment_and_reallocate`.
+
+- Chi si registra qui è un utente reale: le sue prenotazioni risultano **loggate** e possono essere target della disdetta casuale.
+- Nella lista d'attesa la prestazione e le sedi si possono scrivere per nome (`fisiatrica`, `San Severo`): il test-server le traduce negli id del catalogo.
+- Account di prova con password: `paziente.test@prenota.recupera.test` (password non nel repo, chiedila a chi gestisce il progetto); `reset.sql` lo cancella come l'utente di prova.
+- Dopo un aggiornamento di Prenota: `git pull` in `recupera-prenotazioni`, poi `./scripts/importa-prenota.sh`.
+
 ## API (`/api/v1`)
 
 Errori sempre nel formato `{ "error": { "code", "message" } }`. 🔒 = richiede `Authorization: Bearer <token>`.
@@ -78,6 +87,7 @@ Errori sempre nel formato `{ "error": { "code", "message" } }`. 🔒 = richiede 
 | POST | `/test/disdici-casuale` 🔒 | `{ target_id? }` disdice una prenotazione fittizia compatibile con una prenotazione reale (vedi sotto) |
 | POST | `/test/prenotazione-prova` 🔒 | `{ prestazione? }` l'utente di prova (`utente.prova@prenota.recupera.test`) prenota uno slot libero tra 30 e 120 giorni con `public.book_available_slot`; la prenotazione risulta loggata |
 | GET | `/test/disdette` 🔒 | ultime 50 disdette di test |
+| GET | `/slot/liberi` 🔒 | slot futuri liberi con nomi dal catalogo; filtri `prestazione`, `struttura`, `asl`, `da`, `a`, `limit`, `offset`; in più `mesi` (liberi per mese) e `primi` (prima disponibilità per prestazione); `da_disdetta` = slot liberato da una disdetta |
 | GET | `/statistiche/centri` 🔒 | `da`, `a` (default: prossime 8 settimane) → slot, prenotati, liberi e riempimento per struttura, dal più pieno |
 | GET | `/statistiche/dataset` 🔒 | confronto per ASL e prestazione tra prenotazioni settimanali del dataset e simulate, con pressione e riempimento |
 
@@ -104,6 +114,7 @@ Migrazioni in `supabase/migrations/` (già applicate al progetto `recupera`), po
 2. Il dataset non ha più un seed: `test_server.monitoraggio` è una vista sulla settimana `parametri.settimana_dataset` dei dati sincronizzati da dati.puglia.it (migrazione `20261001200000_monitoraggio_vista.sql`).
 3. `supabase/seed/03_offerta.sql`: offerta calibrata sul dataset (slot al giorno e probabilità di prenotazione).
 4. `supabase/seed/04_slot_prenotazioni.sql`: slot e prenotazioni, un anno alla volta per il timeout di 2 minuti: `psql "$DATABASE_URL" -v anno=2026 -f supabase/seed/04_slot_prenotazioni.sql` (poi 2027, 2028).
+5. `supabase/seed/05_agenda_piena_fino_2027.sql`: prenota con pazienti fittizi tutti gli slot liberi fino a fine 2027 (liste piene come in un CUP reale: le prime disponibilità sono nel 2028), tranne quelli liberati da una disdetta. Rieseguibile, un anno alla volta (`-v anno=2026`, poi 2027). Il confronto con il dataset (`confronto_dataset`) usa solo il 2028.
 
 ### Collegamento al dataset della Regione
 
