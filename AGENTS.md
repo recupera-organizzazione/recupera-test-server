@@ -2,6 +2,17 @@
 
 Questo file è l'unica fonte di istruzioni per agenti e contributori su questo repo. `CLAUDE.md` e `GEMINI.md` rimandano qui. Scopo, architettura, API e dati sono descritti in `README.md`: leggilo prima di ogni task.
 
+## 0. Prima di qualsiasi cosa: `git pull`
+
+Altri team lavorano sugli stessi repo. **Prima di leggere, modificare o eseguire qualunque cosa**, aggiorna il repo:
+
+```bash
+git pull --ff-only
+```
+
+- Se il pull fallisce (modifiche locali o storie divergenti), fermati e chiedi all'utente: non usare `reset`, `stash` o `push --force` di tua iniziativa.
+- Ripeti il pull prima di ogni commit/push, così lavori sempre sull'ultima versione.
+
 ## 1. Contesto e stato reale
 
 - Finto sistema CUP: login admin (solo account creati nel DB, nessuna registrazione), prenotazioni fittizie fino al 31/12/2028, disdetta casuale compatibile con prenotazioni reali di Prenota.
