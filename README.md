@@ -57,12 +57,12 @@ Orari: dalle 08:30 (ora di Roma), lun-ven slot pieni, sabato metà, domenica e f
 ## Avvio
 
 ```bash
-cp .env.example .env   # inserisci DATABASE_URL (Supabase > Connect > Session pooler) e JWT_SECRET
+cp .env.example .env   # inserisci DATABASE_URL (Supabase > Connect > Session pooler), JWT_SECRET, SUPABASE_ANON_KEY e ADMIN_EMAIL
 npm install
 npm run dev            # http://localhost:3001
 ```
 
-**Admin condivisi con la dashboard:** il login legge `public.admin_users` (tabella di `recupera-dashboard`, hash scrypt), quindi lo stesso account entra in entrambi i pannelli. L'account `recupera` ha una password generata, non scritta nel repo: chiedila a chi gestisce il progetto. Non c'è registrazione: un admin nuovo si crea dalla dashboard con `ADMIN_USER=nome ADMIN_PASSWORD='…' npm run create:admin` (in `recupera-dashboard/backend`). `test_server.admin_users` resta solo come anagrafica locale, creata al primo login, per collegare le disdette all'admin.
+**Admin condivisi con la dashboard:** il login si comporta come quello di `recupera-dashboard`: lo username deve coincidere con `ADMIN_USER`, la password è verificata da Supabase Auth sull'account `ADMIN_EMAIL`, che deve avere `app_metadata.role = 'admin'`. Usa gli stessi `ADMIN_USER`/`ADMIN_EMAIL` del `.env` della dashboard, così lo stesso account entra in entrambi i pannelli. La password non è scritta nel repo: chiedila a chi gestisce il progetto. Non c'è registrazione: l'account si crea o aggiorna dalla dashboard con `ADMIN_EMAIL=… ADMIN_PASSWORD='…' npm run create:admin` (in `recupera-dashboard/backend`). `public.admin_users` non è più usata per il login. `test_server.admin_users` resta solo come anagrafica locale, creata al primo login, per collegare le disdette all'admin.
 
 ## Formato dei record (come li usa Prenota)
 

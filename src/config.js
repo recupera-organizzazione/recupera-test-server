@@ -16,4 +16,7 @@ export const config = {
   // Per il frontend di Prenota su /prenota (login Supabase Auth): URL e chiave anon, pubblica.
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+  // Login admin come la dashboard: username atteso + email dell'account Supabase Auth con ruolo admin.
+  adminUser: process.env.ADMIN_USER || 'admin',
+  adminEmail: process.env.ADMIN_EMAIL,
 };

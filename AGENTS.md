@@ -15,7 +15,7 @@ git pull --ff-only
 
 ## 1. Contesto e stato reale
 
-- Finto sistema CUP: login admin (stessi account della dashboard in `public.admin_users`, nessuna registrazione), prenotazioni fittizie fino al 31/12/2028, disdetta casuale compatibile con prenotazioni reali di Prenota.
+- Finto sistema CUP: login admin (stesso account della dashboard via Supabase Auth: `ADMIN_USER` + `ADMIN_EMAIL`, ruolo `admin` in `app_metadata`; nessuna registrazione), prenotazioni fittizie fino al 31/12/2028, disdetta casuale compatibile con prenotazioni reali di Prenota.
 - Server Node.js 22 + Express 5 in `src/`, accesso diretto a Postgres con `pg` (`DATABASE_URL`), validazione `zod`, JWT per gli admin.
 - Database: progetto Supabase `recupera` (ref `jjkxvbjwruobclgwhtdt`), **condiviso con il team Prenota**.
 
@@ -38,7 +38,7 @@ git pull --ff-only
 
 ## 4. Regole di lavoro
 
-1. **Segreti:** mai committare `.env`, password del database o chiavi Supabase; versiona solo `.env.example`. Gli admin sono condivisi con la dashboard (`public.admin_users`, hash scrypt): non scrivere password in repo, README o seed.
+1. **Segreti:** mai committare `.env`, password del database o chiavi Supabase; versiona solo `.env.example`. Gli admin sono condivisi con la dashboard (Supabase Auth, ruolo `admin` in `app_metadata`): non scrivere password in repo, README o seed.
 2. **Verifica prima di dire "fatto":** `npm run dev`, `curl` sugli endpoint toccati (login, `/prenotazioni`, `/test/disdici-casuale`) e una prova dal frontend su <http://localhost:3001>; per l'SQL una prova in transazione annullata. Riporta comandi e output.
 3. **API:** errori `{ error: { code, message } }`, input validato con `zod`, endpoint admin protetti da `soloAdmin`. Aggiorna la tabella API nel README quando aggiungi o cambi endpoint.
 4. **Stack:** allineato a `recupera-dashboard/AGENTS.md` (Node 22, Supabase, niente Postgres locale in Docker). Altre scelte richiedono approvazione dell'utente.
