@@ -30,6 +30,8 @@
 }
 
 * { box-sizing: border-box; }
+/* senza questa regola display: grid di .login e .pannello vince su hidden */
+[hidden] { display: none !important; }
 body { margin: 0; font: 14px/1.45 system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--testo); }
 h1 { font-size: 20px; margin: 0 0 4px; }
 h2 { font-size: 16px; margin: 0 0 10px; }
