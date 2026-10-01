@@ -111,7 +111,8 @@ Il dataset è pubblicato su dati.puglia.it con API CKAN: `package_show?id=monito
 
 - `supabase/functions/sync-dataset`: Edge Function che scarica le settimane nuove o modificate e le scrive nelle tabelle della dashboard (`public.prestazione`, `public.rilevazione_settimanale`) tramite `public.sincronizza_settimana_dataset` (migrazione `20261001180000_sync_dataset_puglia.sql`, già applicata). `?forza=1` riscarica tutto.
 - `public.dataset_fonte`: una riga per settimana sincronizzata (risorsa CKAN, data di inizio, ultima modifica).
-- **Da fare:** pubblicare la funzione (`supabase functions deploy sync-dataset`) e pianificarla con pg_cron ogni giorno. Finché non è pubblicata, la dashboard ha solo la settimana 07-11 ottobre 2024.
+- Funzione pubblicata e pianificata con pg_cron ogni giorno alle 04:00 UTC (job `sync-dataset-puglia`, migrazione `20261001191000_cron_sync_dataset.sql`); la chiave per chiamarla sta nel Vault (`sync_dataset_anon_key`). Oggi: 18 settimane, 7.452 righe.
+- In tre risorse (03-07 luglio 2023, 17-21 aprile 2023, 13-17 luglio 2020) l'anno di `SETTIMANA_INDICE` cresce riga per riga: l'etichetta della settimana usa sempre la colonna `ANNO` (migrazione `20261001190000`).
 - Legenda ufficiale: `*_TMAX` = prenotazioni con appuntamento **entro** il tempo massimo della classe (B 10 gg, D 30/60 gg, P 120 gg).
 
 `supabase/seed/reset.sql` cancella solo pazienti fittizi, utente di prova e le loro prenotazioni (prenotazioni e utenti reali restano).
