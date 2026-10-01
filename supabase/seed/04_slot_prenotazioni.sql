@@ -1,8 +1,9 @@
--- Seed 2/2: agenda e prenotazioni fittizie da domani al 31/12/2028.
+-- Seed 4/4: agenda e prenotazioni fittizie da domani al 31/12/2028.
 -- Lun-ven slot pieni, sabato metà slot, domenica e festivi nazionali chiusi.
--- Ogni slot è prenotato con probabilità quota_riempimento * (1 - 0.5 * distanza nel tempo):
--- le prossime settimane sono quasi piene, il 2028 è più libero.
--- Eseguire un anno alla volta (:anno = 2026, 2027, 2028) per stare nel timeout di 2 minuti.
+-- Ogni slot è prenotato con probabilità offerta.prob_prenotazione, calcolata nel seed 3 in modo che le
+-- prenotazioni settimanali per ASL e prestazione = dataset 07-11 ottobre 2024 / scala (20).
+-- Eseguire un anno alla volta per stare nel timeout di 2 minuti:
+--   psql "$DATABASE_URL" -v anno=2026 -f supabase/seed/04_slot_prenotazioni.sql   (poi 2027, 2028)
 
 -- 1. Slot
 insert into public.slots (specialty_id, facility_id, professional_id, starts_at, ends_at, status)
@@ -21,27 +22,28 @@ where extract(isodow from d) < 7
   and to_char(d, 'MM-DD') not in ('01-01','01-06','04-25','05-01','06-02','08-15','11-01','12-08','12-25','12-26')
   and d::date not in (date '2027-03-29', date '2028-04-17');  -- Pasquetta
 
--- 2. Prenotazioni fittizie su una parte degli slot, con paziente della stessa ASL.
+-- 2. Prenotazioni fittizie, con paziente della stessa ASL.
+-- random() va calcolato in una CTE materializzata: scritto nel WHERE accanto a o.prob_prenotazione
+-- Postgres lo valuta una volta per riga di offerta invece che per slot.
 with conteggi as (select asl_id, count(*) n from test_server.pazienti_fittizi group by asl_id),
-     scelti as materialized (
-       select s.*, st.asl_id, 1 + floor(random() * c.n)::int k
+     candidati as materialized (
+       select s.id, s.specialty_id, s.facility_id, s.professional_id, s.starts_at, s.ends_at,
+              st.asl_id, o.prob_prenotazione, random() r, 1 + floor(random() * c.n)::int k
        from public.slots s
+       join test_server.offerta o on o.struttura_id = s.facility_id and o.prestazione_id = s.specialty_id
        join test_server.strutture st on st.id = s.facility_id
        join conteggi c on c.asl_id = st.asl_id
        where s.status = 'available'
-         and s.starts_at >= make_date(:anno, 1, 1) and s.starts_at < make_date(:anno + 1, 1, 1)
-         and not exists (select 1 from public.appointments a where a.slot_id = s.id)
-         and random() < st.quota_riempimento
-               * (1 - 0.5 * extract(epoch from s.starts_at - now())
-                            / extract(epoch from timestamptz '2029-01-01' - now()))),
+         and s.starts_at >= make_date(:anno, 1, 1) and s.starts_at < make_date(:anno + 1, 1, 1)),
      nuove as (
        insert into public.appointments (patient_id, slot_id, specialty_id, facility_id, professional_id,
                                         starts_at, ends_at, status, source, created_at)
        select pf.user_id, s.id, s.specialty_id, s.facility_id, s.professional_id,
               s.starts_at, s.ends_at, 'booked', 'self_booking',
               now() - random() * interval '90 days'
-       from scelti s
+       from candidati s
        join test_server.pazienti_fittizi pf on pf.asl_id = s.asl_id and pf.k = s.k
+       where s.r < s.prob_prenotazione
        returning id, slot_id)
 update public.slots s
 set status = 'booked', appointment_id = nuove.id, updated_at = now()

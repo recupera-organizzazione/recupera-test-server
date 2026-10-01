@@ -1,10 +1,14 @@
--- Rimuove SOLO i dati generati dal seed del test-server (pazienti fittizi, loro prenotazioni,
--- slot vuoti o loro, catalogo). Prenotazioni e utenti reali di Prenota restano intatti,
--- così come gli slot che occupano. Gli admin non vengono toccati.
+-- Rimuove SOLO i dati generati dal test-server: pazienti fittizi, utente di prova, le loro prenotazioni
+-- e gli slot non usati da utenti reali. Prenotazioni e utenti reali di Prenota restano intatti,
+-- così come gli slot che occupano. Admin, catalogo e dataset non vengono toccati
+-- (per rigenerare l'offerta: delete from test_server.offerta; delete from test_server.medici; poi seed 03).
 
 begin;
 
-create temp table fittizi on commit drop as select user_id from test_server.pazienti_fittizi;
+create temp table fittizi on commit drop as
+  select user_id from test_server.pazienti_fittizi
+  union
+  select id from auth.users where raw_app_meta_data ->> 'utente_prova' = 'true';
 
 delete from test_server.disdette_test;
 delete from public.notifications where user_id in (select user_id from fittizi);

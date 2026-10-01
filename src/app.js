@@ -4,10 +4,13 @@ import { gestisciErrori, ApiError } from './errors.js';
 import { authRouter } from './routes/auth.js';
 import { catalogoRouter } from './routes/catalogo.js';
 import { prenotazioniRouter } from './routes/prenotazioni.js';
+import { statisticheRouter } from './routes/statistiche.js';
 import { testRouter } from './routes/test.js';
 
 export const app = express();
 app.use(express.json());
+// Frontend di test (public/index.html)
+app.use(express.static(new URL('../public', import.meta.url).pathname));
 
 app.get('/api/v1/health', async (req, res) => {
   await pool.query('select 1');
@@ -17,6 +20,7 @@ app.get('/api/v1/health', async (req, res) => {
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/catalogo', catalogoRouter);
 app.use('/api/v1/prenotazioni', prenotazioniRouter);
+app.use('/api/v1/statistiche', statisticheRouter);
 app.use('/api/v1/test', testRouter);
 
 app.use((req, res) => {

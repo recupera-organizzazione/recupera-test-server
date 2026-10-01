@@ -5,7 +5,7 @@ export const catalogoRouter = Router();
 
 // Pubblico: nomi di ASL, prestazioni, strutture e medici per tradurre gli id usati in slots/appointments.
 catalogoRouter.get('/', async (req, res) => {
-  const [asl, prestazioni, strutture, offerta] = await Promise.all([
+  const [asl, prestazioni, strutture, offerta, parametri] = await Promise.all([
     pool.query('select id, sigla, nome from test_server.asl order by sigla'),
     pool.query('select id, codice, descrizione, durata_min from test_server.prestazioni order by descrizione'),
     pool.query('select id, asl_id, nome, comune from test_server.strutture order by id'),
@@ -14,8 +14,10 @@ catalogoRouter.get('/', async (req, res) => {
        from test_server.offerta o join test_server.medici m on m.id = o.medico_id
        order by o.struttura_id, o.prestazione_id`,
     ),
+    pool.query('select chiave, valore from test_server.parametri'),
   ]);
   res.json({
+    parametri: Object.fromEntries(parametri.rows.map((p) => [p.chiave, p.valore])),
     asl: asl.rows,
     prestazioni: prestazioni.rows,
     strutture: strutture.rows,

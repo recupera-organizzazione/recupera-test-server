@@ -19,13 +19,16 @@ Questo file è l'unica fonte di istruzioni per agenti e contributori su questo r
 
 - Solo dati inventati per i pazienti; i pazienti fittizi non hanno password e usano email `@paziente.recupera.test`.
 - Catalogo: ASL e prestazioni dal dataset "Monitoraggio dei tempi di attesa" (ID_PRESTAZIONE come `specialty_id`), ospedali reali pugliesi come `facility_id`. Non inventare nuove fonti: se aggiungi dati reali, documenta la fonte nel README.
+- **Volumi legati al dataset** (`test_server.monitoraggio`, settimana 07-11 ottobre 2024): prenotazioni settimanali generate = dataset / `parametri.scala` per ASL e prestazione. Dopo ogni rigenerazione verifica `test_server.confronto_dataset` (scarto atteso entro ±1% per ASL). Non introdurre volumi o riempimenti inventati che non derivino dal dataset.
+- `*_TMAX` è interpretato come "garantite entro il tempo massimo" (vedi README). Se il team cambia interpretazione, va cambiata solo la vista `test_server.pressione` e poi rigenerati seed 03 e 04.
 - Orari: genera date con `timestamp` (non `timestamptz`) e converti con `at time zone 'Europe/Rome'`, altrimenti gli slot slittano di ore.
+- `random()` in un `WHERE` che usa solo colonne di una tabella piccola (es. `random() < o.prob_prenotazione`) viene valutato una volta per riga di quella tabella: calcolalo in una CTE `materialized` e filtra dopo.
 - Ogni modifica allo schema = nuovo file in `supabase/migrations/`, poi applicato al progetto; mai modifiche solo dalla dashboard Supabase.
 
 ## 4. Regole di lavoro
 
 1. **Segreti:** mai committare `.env`, password del database o chiavi Supabase; versiona solo `.env.example`. La password admin di test `recuperapw` è volutamente nota: non riusarla per account veri.
-2. **Verifica prima di dire "fatto":** `npm run dev`, `curl` sugli endpoint toccati (login, `/prenotazioni`, `/test/disdici-casuale`), e per l'SQL una prova in transazione annullata. Riporta comandi e output.
+2. **Verifica prima di dire "fatto":** `npm run dev`, `curl` sugli endpoint toccati (login, `/prenotazioni`, `/test/disdici-casuale`) e una prova dal frontend su <http://localhost:3001>; per l'SQL una prova in transazione annullata. Riporta comandi e output.
 3. **API:** errori `{ error: { code, message } }`, input validato con `zod`, endpoint admin protetti da `soloAdmin`. Aggiorna la tabella API nel README quando aggiungi o cambi endpoint.
 4. **Stack:** allineato a `recupera-dashboard/AGENTS.md` (Node 22, Supabase, niente Postgres locale in Docker). Altre scelte richiedono approvazione dell'utente.
 5. **Git:** modifica i file, ma `commit`/`push`/PR solo su richiesta esplicita dell'utente.

@@ -1,13 +1,14 @@
 # recupera-test-server
 
-Finto sistema **CUP** per sviluppare e testare reCUPera senza il CUP reale: agenda di slot, prenotazioni fittizie fino al 2028, login admin e disdetta casuale di una prenotazione per provare il flusso di riassegnazione dell'app Prenota.
+Finto sistema **CUP** per sviluppare e testare reCUPera senza il CUP reale: agenda di slot, prenotazioni fittizie fino al 2028 con volumi basati sul dataset reale della Regione Puglia (settimana 07-11 ottobre 2024), login admin, frontend di test e disdetta casuale di una prenotazione per provare il flusso di riassegnazione dell'app Prenota.
 
 ## Architettura
 
 - **Database:** progetto Supabase `recupera` (condiviso con Prenota).
   - Tabelle `public.slots`, `public.appointments`, `public.waiting_list`, `public.cancellation_events`, `public.notifications` e funzioni `book_available_slot` / `cancel_appointment_and_reallocate`: create dal **team Prenota**, il test-server le popola e le usa senza cambiarne la struttura.
-  - Schema `test_server` (non esposto dall'API Supabase): admin, catalogo, pazienti fittizi, log delle disdette, vista `prenotazioni`, funzione `disdici_casuale`.
+  - Schema `test_server` (non esposto dall'API Supabase): admin, catalogo, dataset `monitoraggio`, pazienti fittizi, log delle disdette, viste `prenotazioni`, `pressione`, `confronto_dataset`, funzioni `disdici_casuale`, `crea_prenotazione_prova`, `carico_strutture`.
 - **Server:** Node.js 22 + Express 5, `pg` diretto al database, `zod` per la validazione, JWT per le sessioni admin.
+- **Frontend di test:** un solo file `public/index.html` (HTML, CSS e JS senza framework), servito dallo stesso server.
 
 ### Prenotazioni loggate e fittizie
 
@@ -20,19 +21,38 @@ La vista `test_server.prenotazioni` le unisce con la colonna `tipo`.
 
 ## Dati generati
 
+> **Volumi basati sul dataset reale "Monitoraggio dei tempi di attesa" della Regione Puglia,
+> settimana 07-11 ottobre 2024** ([dati.puglia.it](https://dati.puglia.it/ckan/dataset/monitoraggio-tempi-di-attesa), CC BY 4.0),
+> lo stesso CSV di `recupera-dashboard`. Prenotazioni, pazienti e medici sono **fittizi**; i volumi sono in **scala 1:20**.
+
 | Cosa | Quantità |
 |---|---|
-| Slot | ~160.000, dal 2 ottobre 2026 al 31 dicembre 2028 |
-| Prenotazioni fittizie | ~82.600 (circa 67% degli slot nel 2026, 57% nel 2027, 42% nel 2028) |
+| Slot | ~250.000, dal 2 ottobre 2026 al 31 dicembre 2028 |
+| Prenotazioni fittizie | ~148.000 (~1.287 a settimana = 25.732 del dataset / 20) |
 | Pazienti fittizi | 2.500, ripartiti per ASL |
-| Strutture | 12 (2 per ASL), 4 prestazioni ciascuna, 1 medico per prestazione |
+| Strutture | 12 (2 per ASL), tutte le 10 prestazioni, 1 medico per prestazione |
 
-Orari: dalle 08:30 (ora di Roma), lun-ven slot pieni, sabato metà, domenica e festivi nazionali chiusi. Ogni struttura ha una `quota_riempimento` diversa per avere centri pieni (es. San Paolo 92%) e vuoti (es. Camberlingo 45%); le prenotazioni si diradano andando avanti nel tempo.
+### Come i dati seguono il dataset
 
-### Fonti dei dati
+- **Volumi:** per ogni ASL e prestazione, le prenotazioni settimanali generate = `PRENOTAZIONI` del dataset / 20 (verificato: scarto entro ±1% per ASL, ±3% per prestazione; vista `test_server.confronto_dataset`).
+- **Quali centri sono più pieni:** il dataset non ha strutture né capacità, solo ASL. Il riempimento delle agende segue la **pressione** dell'ASL per prestazione: `pressione = 1 - (B_TMAX + D_TMAX + P_TMAX) / PRENOTAZIONI_DAGARANTIRE`, riempimento obiettivo `50% + 45% × pressione` (vista `test_server.pressione`). Risultato: BT e BA sono le ASL più piene, FG la più vuota.
+- **Interpretazione di `*_TMAX`:** il dataset non ha dizionario dati. Lo leggiamo come prenotazioni garantite **entro** il tempo massimo, perché la quota cresce con la tolleranza della classe (B 10 gg: 40%, D: 52%, P 120 gg: 69%), cosa coerente solo con "entro". `recupera-dashboard` oggi lo descrive come "oltre": da allineare tra i team.
+- **Inventato:** la ripartizione dell'offerta di un'ASL tra le sue 2 strutture (principale 60%, secondaria 40%), orari, durate, nomi di medici e pazienti. Per ASL piccole il numero di slot è arrotondato per eccesso, quindi il riempimento reale è un po' sotto l'obiettivo.
 
-- **Reali:** codici e nomi delle 6 ASL pugliesi e le 10 prestazioni più prenotate (ID, codice, descrizione) dal dataset "Monitoraggio dei tempi di attesa", settimana 07-11 ottobre 2024 (lo stesso di `recupera-dashboard`); nomi e comuni di 12 ospedali reali delle ASL pugliesi.
-- **Inventati:** medici, pazienti, durate e numero di slot, quote di riempimento, orari.
+Orari: dalle 08:30 (ora di Roma), lun-ven slot pieni, sabato metà, domenica e festivi nazionali chiusi. Il volume settimanale è costante fino al 2028 (il dataset copre una sola settimana).
+
+### Fonti
+
+- **Reali:** codici e nomi delle 6 ASL, le 10 prestazioni più prenotate (ID, codice, descrizione), volumi e quote TMAX dal dataset; nomi e comuni di 12 ospedali reali delle ASL pugliesi.
+- **Inventati:** tutto il resto (vedi sopra).
+
+## Frontend di test
+
+`npm run dev` e apri <http://localhost:3001>: login admin, poi tre schede.
+
+- **Centri:** riempimento delle 12 strutture nel periodo scelto e confronto per ASL (e per prestazione) tra dataset e simulazione.
+- **Prenotazioni:** elenco con filtri (loggate/fittizie, stato, prestazione, struttura, date).
+- **Test disdetta:** crea una prenotazione con l'utente di prova (simula un utente loggato su Prenota), poi disdici a caso una prenotazione fittizia compatibile e guarda lo slot liberato.
 
 ## Avvio
 
@@ -61,7 +81,10 @@ Errori sempre nel formato `{ "error": { "code", "message" } }`. 🔒 = richiede 
 | GET | `/catalogo` | ASL, prestazioni, strutture, medici e offerta, per tradurre gli id di slot e prenotazioni |
 | GET | `/prenotazioni` 🔒 | filtri: `tipo` (`loggata`, `fittizia`, `tutte`), `stato` (`booked`, `cancelled`, `tutti`), `prestazione`, `struttura`, `paziente`, `da`, `a` (YYYY-MM-DD), `limit` (max 500), `offset` |
 | POST | `/test/disdici-casuale` 🔒 | `{ target_id? }` disdice una prenotazione fittizia compatibile con una prenotazione reale (vedi sotto) |
+| POST | `/test/prenotazione-prova` 🔒 | `{ prestazione? }` l'utente di prova (`utente.prova@prenota.recupera.test`) prenota uno slot libero tra 30 e 120 giorni con `public.book_available_slot`; la prenotazione risulta loggata |
 | GET | `/test/disdette` 🔒 | ultime 50 disdette di test |
+| GET | `/statistiche/centri` 🔒 | `da`, `a` (default: prossime 8 settimane) → slot, prenotati, liberi e riempimento per struttura, dal più pieno |
+| GET | `/statistiche/dataset` 🔒 | confronto per ASL e prestazione tra prenotazioni settimanali del dataset e simulate, con pressione e riempimento |
 
 ### Disdetta casuale compatibile
 
@@ -80,7 +103,11 @@ curl -s -X POST localhost:3001/api/v1/test/disdici-casuale -H "authorization: Be
 
 ## Database: migrazioni e seed
 
-- `supabase/migrations/20261001120000_test_server_schema.sql`: schema `test_server` (già applicato al progetto `recupera`).
-- `supabase/seed/01_catalogo_admin_pazienti.sql`: admin, catalogo, pazienti fittizi.
-- `supabase/seed/02_slot_prenotazioni.sql`: slot e prenotazioni, da eseguire un anno alla volta per il timeout di 2 minuti: `psql "$DATABASE_URL" -v anno=2027 -f supabase/seed/02_slot_prenotazioni.sql`.
-- `supabase/seed/reset.sql`: cancella solo i dati fittizi (prenotazioni e utenti reali restano).
+Migrazioni in `supabase/migrations/` (già applicate al progetto `recupera`), poi i seed in ordine:
+
+1. `supabase/seed/01_catalogo_admin_pazienti.sql`: admin, ASL, prestazioni, strutture, pazienti fittizi.
+2. `supabase/seed/02_monitoraggio.sql`: il dataset completo (414 righe, 6 ASL, 69 prestazioni).
+3. `supabase/seed/03_offerta.sql`: offerta calibrata sul dataset (slot al giorno e probabilità di prenotazione).
+4. `supabase/seed/04_slot_prenotazioni.sql`: slot e prenotazioni, un anno alla volta per il timeout di 2 minuti: `psql "$DATABASE_URL" -v anno=2026 -f supabase/seed/04_slot_prenotazioni.sql` (poi 2027, 2028).
+
+`supabase/seed/reset.sql` cancella solo pazienti fittizi, utente di prova e le loro prenotazioni (prenotazioni e utenti reali restano).

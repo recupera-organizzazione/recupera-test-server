@@ -1,5 +1,6 @@
--- Seed 1/2: catalogo Regione Puglia, admin di test, pazienti fittizi.
--- Idempotente solo su DB vuoto: per rigenerare usa prima supabase/seed/reset.sql.
+-- Seed 1/4: catalogo Regione Puglia, admin di test, pazienti fittizi.
+-- Ordine: 01 catalogo, 02 dataset, 03 offerta, 04 slot e prenotazioni (dopo tutte le migrazioni).
+-- Non idempotente: per rigenerare usa prima supabase/seed/reset.sql.
 
 -- Admin di test (nessuna registrazione: gli admin si creano solo così).
 insert into test_server.admin_users (username, password_hash)
@@ -28,41 +29,21 @@ insert into test_server.prestazioni (id, codice, descrizione, durata_min) values
   ('4',  '89.13',   'Prima visita neurologica', 30),
   ('15', '87.37.1', 'Mammografia bilaterale', 20);
 
--- Ospedali reali delle ASL pugliesi; quota_riempimento è inventata per avere centri pieni e vuoti.
-insert into test_server.strutture (id, asl_id, nome, comune, quota_riempimento) values
-  ('BA-SANPAOLO',   '160114', 'Ospedale San Paolo',               'Bari',              0.92),
-  ('BA-DIVENERE',   '160114', 'Ospedale Di Venere',               'Bari',              0.85),
-  ('BR-PERRINO',    '160106', 'Ospedale Antonio Perrino',         'Brindisi',          0.70),
-  ('BR-CAMBERLINGO','160106', 'Ospedale Dario Camberlingo',       'Francavilla Fontana', 0.45),
-  ('BT-DIMICCOLI',  '160113', 'Ospedale Mons. R. Dimiccoli',      'Barletta',          0.75),
-  ('BT-BONOMO',     '160113', 'Ospedale Lorenzo Bonomo',          'Andria',            0.55),
-  ('FG-TATARELLA',  '160115', 'Ospedale Giuseppe Tatarella',      'Cerignola',         0.80),
-  ('FG-MASSELLI',   '160115', 'Ospedale Teresa Masselli Mascia',  'San Severo',        0.50),
-  ('LE-FAZZI',      '160116', 'Ospedale Vito Fazzi',              'Lecce',             0.88),
-  ('LE-GALATINA',   '160116', 'Ospedale Santa Caterina Novella',  'Galatina',          0.52),
-  ('TA-ANNUNZIATA', '160112', 'Ospedale SS. Annunziata',          'Taranto',           0.86),
-  ('TA-MARTINA',    '160112', 'Ospedale Valle d''Itria',          'Martina Franca',    0.48);
-
--- Offerta: 4 prestazioni per struttura, un medico fittizio ciascuna.
-with s as (select id, row_number() over (order by id) i from test_server.strutture),
-     p as (select id, row_number() over (order by id::int) j from test_server.prestazioni),
-     nomi as (select array['Marco','Giulia','Antonio','Francesca','Giuseppe','Maria','Nicola','Anna',
-                           'Vito','Rosa','Michele','Lucia','Domenico','Angela','Luca','Paola'] n,
-                     array['Lorusso','De Santis','Ricci','Lomuscio','Caputo','Greco','Colella','Lattanzio',
-                           'Fanizzi','Russo','Morea','Palumbo','Mastrangelo','Carella','Damiani','Zaccaria'] c),
-     o as (select s.id struttura_id, p.id prestazione_id, s.i, p.j
-           from s cross join p where (s.i + p.j) % 5 < 2)
-insert into test_server.medici (id, nome)
-select 'MED-' || struttura_id || '-' || prestazione_id,
-       'Dott. ' || nomi.n[1 + (i * 7 + j * 3) % 16] || ' ' || nomi.c[1 + (i * 5 + j * 11) % 16]
-from o, nomi;
-
-insert into test_server.offerta (struttura_id, prestazione_id, medico_id, slot_giornalieri)
-select split_part(substr(m.id, 5), '-', 1) || '-' || split_part(substr(m.id, 5), '-', 2),
-       split_part(substr(m.id, 5), '-', 3),
-       m.id,
-       case split_part(substr(m.id, 5), '-', 3) when '56' then 8 when '15' then 6 else 5 end
-from test_server.medici m;
+-- Ospedali reali delle ASL pugliesi (il dataset è per ASL: l'attribuzione alle strutture è inventata).
+-- quota_capacita: quota dell'offerta dell'ASL erogata dalla struttura (principale 60%, secondaria 40%).
+insert into test_server.strutture (id, asl_id, nome, comune, quota_capacita) values
+  ('BA-SANPAOLO',   '160114', 'Ospedale San Paolo',               'Bari',                0.60),
+  ('BA-DIVENERE',   '160114', 'Ospedale Di Venere',               'Bari',                0.40),
+  ('BR-PERRINO',    '160106', 'Ospedale Antonio Perrino',         'Brindisi',            0.60),
+  ('BR-CAMBERLINGO','160106', 'Ospedale Dario Camberlingo',       'Francavilla Fontana', 0.40),
+  ('BT-DIMICCOLI',  '160113', 'Ospedale Mons. R. Dimiccoli',      'Barletta',            0.60),
+  ('BT-BONOMO',     '160113', 'Ospedale Lorenzo Bonomo',          'Andria',              0.40),
+  ('FG-TATARELLA',  '160115', 'Ospedale Giuseppe Tatarella',      'Cerignola',           0.60),
+  ('FG-MASSELLI',   '160115', 'Ospedale Teresa Masselli Mascia',  'San Severo',          0.40),
+  ('LE-FAZZI',      '160116', 'Ospedale Vito Fazzi',              'Lecce',               0.60),
+  ('LE-GALATINA',   '160116', 'Ospedale Santa Caterina Novella',  'Galatina',            0.40),
+  ('TA-ANNUNZIATA', '160112', 'Ospedale SS. Annunziata',          'Taranto',             0.60),
+  ('TA-MARTINA',    '160112', 'Ospedale Valle d''Itria',          'Martina Franca',      0.40);
 
 -- Pazienti fittizi: utenti auth senza password (non possono fare login), ripartiti per ASL
 -- in proporzione approssimativa alla popolazione.

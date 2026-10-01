@@ -29,6 +29,24 @@ testRouter.post('/disdici-casuale', soloAdmin, async (req, res) => {
   }
 });
 
+const prenotazioneProvaSchema = z.object({
+  prestazione: z.string().max(20).optional(),
+});
+
+// Simula un utente loggato su Prenota che prenota uno slot libero tra 30 e 120 giorni.
+testRouter.post('/prenotazione-prova', soloAdmin, async (req, res) => {
+  const { prestazione } = validazione(prenotazioneProvaSchema, req.body ?? {});
+  try {
+    const { rows } = await pool.query('select test_server.crea_prenotazione_prova($1) as esito', [
+      prestazione ?? null,
+    ]);
+    res.status(201).json(rows[0].esito);
+  } catch (err) {
+    if (err.code === 'P0002') throw new ApiError(404, 'nessuno_slot', err.message);
+    throw err;
+  }
+});
+
 testRouter.get('/disdette', soloAdmin, async (req, res) => {
   const { rows } = await pool.query(
     `select d.id, d.created_at, a.username as admin, d.esito
