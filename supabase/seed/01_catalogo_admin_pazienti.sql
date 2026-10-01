@@ -14,33 +14,35 @@ insert into test_server.asl (id, sigla, nome) values
   ('160112', 'TA', 'ASL Taranto');
 
 -- Le 10 prestazioni con più prenotazioni nel dataset (settimana 07-11 ottobre 2024).
-insert into test_server.prestazioni (id, codice, descrizione, durata_min) values
-  ('56', '89.52',   'Elettrocardiogramma', 15),
-  ('5',  '95.02',   'Prima visita oculistica', 30),
-  ('1',  '89.7',    'Prima visita cardiologica', 30),
-  ('45', '88.76.1', 'Ecografia dell''addome completo', 30),
-  ('11', '89.7',    'Prima visita fisiatrica', 30),
-  ('8',  '89.7',    'Prima visita otorinolaringoiatrica', 30),
-  ('10', '89.7',    'Prima visita dermatologica', 30),
-  ('6',  '89.7',    'Prima visita ortopedica', 30),
-  ('4',  '89.13',   'Prima visita neurologica', 30),
-  ('15', '87.37.1', 'Mammografia bilaterale', 20);
+-- branca = specialty_id dei record di Prenota, come la scrive un paziente ("cardiologia").
+insert into test_server.prestazioni (id, codice, descrizione, durata_min, branca) values
+  ('56', '89.52',   'Elettrocardiogramma', 15, 'cardiologia'),
+  ('5',  '95.02',   'Prima visita oculistica', 30, 'oculistica'),
+  ('1',  '89.7',    'Prima visita cardiologica', 30, 'cardiologia'),
+  ('45', '88.76.1', 'Ecografia dell''addome completo', 30, 'ecografia'),
+  ('11', '89.7',    'Prima visita fisiatrica', 30, 'fisiatria'),
+  ('8',  '89.7',    'Prima visita otorinolaringoiatrica', 30, 'otorinolaringoiatria'),
+  ('10', '89.7',    'Prima visita dermatologica', 30, 'dermatologia'),
+  ('6',  '89.7',    'Prima visita ortopedica', 30, 'ortopedia'),
+  ('4',  '89.13',   'Prima visita neurologica', 30, 'neurologia'),
+  ('15', '87.37.1', 'Mammografia bilaterale', 20, 'mammografia');
 
 -- Ospedali reali delle ASL pugliesi (il dataset è per ASL: l'attribuzione alle strutture è inventata).
 -- quota_capacita: quota dell'offerta dell'ASL erogata dalla struttura (principale 60%, secondaria 40%).
+-- id = "Nome - Comune": è il facility_id dei record di Prenota (testo leggibile, confrontato esatto).
 insert into test_server.strutture (id, asl_id, nome, comune, quota_capacita) values
-  ('BA-SANPAOLO',   '160114', 'Ospedale San Paolo',               'Bari',                0.60),
-  ('BA-DIVENERE',   '160114', 'Ospedale Di Venere',               'Bari',                0.40),
-  ('BR-PERRINO',    '160106', 'Ospedale Antonio Perrino',         'Brindisi',            0.60),
-  ('BR-CAMBERLINGO','160106', 'Ospedale Dario Camberlingo',       'Francavilla Fontana', 0.40),
-  ('BT-DIMICCOLI',  '160113', 'Ospedale Mons. R. Dimiccoli',      'Barletta',            0.60),
-  ('BT-BONOMO',     '160113', 'Ospedale Lorenzo Bonomo',          'Andria',              0.40),
-  ('FG-TATARELLA',  '160115', 'Ospedale Giuseppe Tatarella',      'Cerignola',           0.60),
-  ('FG-MASSELLI',   '160115', 'Ospedale Teresa Masselli Mascia',  'San Severo',          0.40),
-  ('LE-FAZZI',      '160116', 'Ospedale Vito Fazzi',              'Lecce',               0.60),
-  ('LE-GALATINA',   '160116', 'Ospedale Santa Caterina Novella',  'Galatina',            0.40),
-  ('TA-ANNUNZIATA', '160112', 'Ospedale SS. Annunziata',          'Taranto',             0.60),
-  ('TA-MARTINA',    '160112', 'Ospedale Valle d''Itria',          'Martina Franca',      0.40);
+  ('Ospedale San Paolo - Bari',   '160114', 'Ospedale San Paolo',               'Bari',                0.60),
+  ('Ospedale Di Venere - Bari',   '160114', 'Ospedale Di Venere',               'Bari',                0.40),
+  ('Ospedale Antonio Perrino - Brindisi',    '160106', 'Ospedale Antonio Perrino',         'Brindisi',            0.60),
+  ('Ospedale Dario Camberlingo - Francavilla Fontana','160106', 'Ospedale Dario Camberlingo',       'Francavilla Fontana', 0.40),
+  ('Ospedale Mons. R. Dimiccoli - Barletta',  '160113', 'Ospedale Mons. R. Dimiccoli',      'Barletta',            0.60),
+  ('Ospedale Lorenzo Bonomo - Andria',     '160113', 'Ospedale Lorenzo Bonomo',          'Andria',              0.40),
+  ('Ospedale Giuseppe Tatarella - Cerignola',  '160115', 'Ospedale Giuseppe Tatarella',      'Cerignola',           0.60),
+  ('Ospedale Teresa Masselli Mascia - San Severo',   '160115', 'Ospedale Teresa Masselli Mascia',  'San Severo',          0.40),
+  ('Ospedale Vito Fazzi - Lecce',      '160116', 'Ospedale Vito Fazzi',              'Lecce',               0.60),
+  ('Ospedale Santa Caterina Novella - Galatina',   '160116', 'Ospedale Santa Caterina Novella',  'Galatina',            0.40),
+  ('Ospedale SS. Annunziata - Taranto', '160112', 'Ospedale SS. Annunziata',          'Taranto',             0.60),
+  ('Ospedale Valle d''Itria - Martina Franca',    '160112', 'Ospedale Valle d''Itria',          'Martina Franca',      0.40);
 
 -- Pazienti fittizi: utenti auth senza password (non possono fare login), ripartiti per ASL
 -- in proporzione approssimativa alla popolazione.

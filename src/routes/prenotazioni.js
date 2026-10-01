@@ -30,7 +30,8 @@ prenotazioniRouter.get('/', soloAdmin, async (req, res) => {
 
   if (f.tipo !== 'tutte') aggiungi('tipo = ?', f.tipo);
   if (f.stato !== 'tutti') aggiungi('status = ?', f.stato);
-  if (f.prestazione) aggiungi('specialty_id = ?', f.prestazione);
+  // prestazione: id del catalogo ("1") o branca ("cardiologia", cioè lo specialty_id)
+  if (f.prestazione) aggiungi('(prestazione_id = ? or specialty_id = $' + (valori.length + 1) + ')', f.prestazione);
   if (f.struttura) aggiungi('facility_id = ?', f.struttura);
   if (f.paziente) aggiungi('patient_id = ?', f.paziente);
   if (f.da) aggiungi(`starts_at >= (?::date at time zone 'Europe/Rome')`, f.da);

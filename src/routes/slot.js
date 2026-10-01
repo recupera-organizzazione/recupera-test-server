@@ -28,21 +28,23 @@ slotRouter.get('/liberi', soloAdmin, async (req, res) => {
     valori.push(valore);
     condizioni.push(sql.replace('?', `$${valori.length}`));
   };
-  if (f.prestazione) aggiungi('s.specialty_id = ?', f.prestazione);
+  // prestazione: id del catalogo ("1") o branca ("cardiologia", cioè lo specialty_id)
+  if (f.prestazione) aggiungi('(o.prestazione_id = ? or s.specialty_id = $' + (valori.length + 1) + ')', f.prestazione);
   if (f.struttura) aggiungi('s.facility_id = ?', f.struttura);
   if (f.asl) aggiungi('a.sigla = upper(?)', f.asl);
   if (f.da) aggiungi(`s.starts_at >= (?::date at time zone 'Europe/Rome')`, f.da);
   if (f.a) aggiungi(`s.starts_at < ((?::date + 1) at time zone 'Europe/Rome')`, f.a);
   const where = `where ${condizioni.join(' and ')}`;
   const da = `from public.slots s
-    left join test_server.prestazioni p on p.id = s.specialty_id
+    left join test_server.offerta o on o.struttura_id = s.facility_id and o.medico_id = s.professional_id
+    left join test_server.prestazioni p on p.id = o.prestazione_id
     left join test_server.strutture st on st.id = s.facility_id
     left join test_server.asl a on a.id = st.asl_id
     left join test_server.medici m on m.id = s.professional_id`;
 
   const [elenco, mesi, primi] = await Promise.all([
     pool.query(
-      `select s.id, s.starts_at, s.ends_at, s.specialty_id, p.descrizione as prestazione,
+      `select s.id, s.starts_at, s.ends_at, s.specialty_id, o.prestazione_id, p.descrizione as prestazione,
               s.facility_id, st.nome as struttura, st.comune, a.sigla as asl, m.nome as medico,
               exists (select 1 from public.cancellation_events ce where ce.slot_id = s.id) as da_disdetta,
               count(*) over () as totale
@@ -56,8 +58,8 @@ slotRouter.get('/liberi', soloAdmin, async (req, res) => {
       valori,
     ),
     pool.query(
-      `select s.specialty_id, p.descrizione as prestazione, min(s.starts_at) as primo, count(*)::int as liberi
-       ${da} ${where} group by 1, 2 order by 3`,
+      `select s.specialty_id, o.prestazione_id, p.descrizione as prestazione, min(s.starts_at) as primo, count(*)::int as liberi
+       ${da} ${where} group by 1, 2, 3 order by 4`,
       valori,
     ),
   ]);

@@ -67,20 +67,23 @@ const ruolo = (...ruoli) => (req, res, next) => (ruoli.includes(req.user.role)
   ? next()
   : res.status(403).json({ error: 'Permessi insufficienti.' }));
 
-// Nel test-server la prestazione può essere scritta per nome ("cardiologica"): la si traduce
-// nell'id del catalogo (specialty_id). Lo stesso per le sedi (id, nome o comune).
+// Prenota confronta prestazione e sede come testo esatto. Nel test-server si accettano anche testi
+// approssimativi ("Cardiologia", "visita cardiologica", "Bari") e si salvano come nei record di test:
+// branca della prestazione (specialty_id) e "Nome - Comune" della struttura (facility_id).
 async function idPrestazione(testo) {
   const { rows } = await pool.query(
-    `select id from test_server.prestazioni where id = $1 or descrizione ilike '%' || $1 || '%' order by id = $1 desc limit 1`,
+    `select branca from test_server.prestazioni
+     where lower(branca) = lower($1) or descrizione ilike '%' || $1 || '%' or $1 ilike '%' || branca || '%'
+     order by lower(branca) = lower($1) desc limit 1`,
     [testo],
   );
-  return rows[0]?.id ?? testo;
+  return rows[0]?.branca ?? testo;
 }
 async function idStrutture(testi = []) {
   const ids = [];
   for (const testo of testi) {
     const { rows } = await pool.query(
-      `select id from test_server.strutture where id = upper($1) or nome ilike '%' || $1 || '%' or comune ilike $1`,
+      `select id from test_server.strutture where lower(id) = lower($1) or nome ilike '%' || $1 || '%' or comune ilike $1`,
       [testo],
     );
     ids.push(...(rows.length ? rows.map((r) => r.id) : [testo]));

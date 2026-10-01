@@ -64,12 +64,24 @@ npm run dev            # http://localhost:3001
 
 **Admin condivisi con la dashboard:** il login legge `public.admin_users` (tabella di `recupera-dashboard`, hash scrypt), quindi lo stesso account entra in entrambi i pannelli. L'account `recupera` ha una password generata, non scritta nel repo: chiedila a chi gestisce il progetto. Non c'è registrazione: un admin nuovo si crea dalla dashboard con `ADMIN_USER=nome ADMIN_PASSWORD='…' npm run create:admin` (in `recupera-dashboard/backend`). `test_server.admin_users` resta solo come anagrafica locale, creata al primo login, per collegare le disdette all'admin.
 
+## Formato dei record (come li usa Prenota)
+
+Prenota confronta prestazione e sede come **testo esatto** (lista d'attesa ↔ slot liberati), quindi i record di test sono scritti come li scriverebbe un utente:
+
+| Campo | Esempio | Da dove |
+|---|---|---|
+| `specialty_id` | `cardiologia` | branca della prestazione (`test_server.prestazioni.branca`) |
+| `facility_id` | `Ospedale San Paolo - Bari` | `test_server.strutture.id` |
+| `professional_id` | `Dott. Angela Lattanzio` | `test_server.medici.id` |
+
+Branche: cardiologia (prima visita cardiologica ed elettrocardiogramma), oculistica, fisiatria, otorinolaringoiatria, dermatologia, ortopedia, neurologia, ecografia (addome completo), mammografia (bilaterale). La prestazione esatta del dataset (`ID_PRESTAZIONE`) si ricava da struttura + medico in `test_server.offerta`; le viste `prenotazioni` e `confronto_dataset` lo fanno già (colonna `prestazione_id`).
+
 ## App Prenota dentro il test-server (`/prenota/`)
 
 <http://localhost:3001/prenota/> è il frontend di `recupera-prenotazioni` (cartella `public/`), copiato in `public/prenota` con `scripts/importa-prenota.sh` (rende relativi i percorsi assoluti, nient'altro). Le sue API (`/prenota/api/...`, stesso contratto di `recupera-prenotazioni/src/server.js`) sono in `src/routes/prenota.js`: login con Supabase Auth (serve `SUPABASE_URL` e `SUPABASE_ANON_KEY` nel `.env`), prenotazione e disdetta con `public.book_available_slot` e `public.cancel_appointment_and_reallocate`.
 
 - Chi si registra qui è un utente reale: le sue prenotazioni risultano **loggate** e possono essere target della disdetta casuale.
-- Nella lista d'attesa la prestazione e le sedi si possono scrivere per nome (`fisiatrica`, `San Severo`): il test-server le traduce negli id del catalogo.
+- Nella lista d'attesa prestazione e sedi si possono scrivere in modo approssimativo (`Cardiologia`, `visita fisiatrica`, `Bari`): il test-server le salva come nei record di test (`cardiologia`, `Ospedale San Paolo - Bari`, …).
 - Account di prova con password: `paziente.test@prenota.recupera.test` (password non nel repo, chiedila a chi gestisce il progetto); `reset.sql` lo cancella come l'utente di prova.
 - Dopo un aggiornamento di Prenota: `git pull` in `recupera-prenotazioni`, poi `./scripts/importa-prenota.sh`.
 

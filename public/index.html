@@ -616,7 +616,7 @@ async function avvia() {
   catalogo = await api('/catalogo');
   for (const select of document.querySelectorAll('.sel-prestazione')) {
     select.replaceChildren(select.options[0],
-      ...catalogo.prestazioni.map((p) => el('option', { value: p.id }, p.descrizione)));
+      ...catalogo.prestazioni.map((p) => el('option', { value: p.id }, `${p.descrizione} (${p.branca})`)));
   }
   for (const select of document.querySelectorAll('.sel-struttura')) {
     select.replaceChildren(select.options[0],

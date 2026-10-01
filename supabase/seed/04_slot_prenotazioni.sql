@@ -5,9 +5,10 @@
 -- Eseguire un anno alla volta per stare nel timeout di 2 minuti:
 --   psql "$DATABASE_URL" -v anno=2026 -f supabase/seed/04_slot_prenotazioni.sql   (poi 2027, 2028)
 
--- 1. Slot
+-- 1. Slot: specialty_id = branca ("cardiologia"), facility_id = "Ospedale ... - Comune",
+--    professional_id = nome del medico (testi leggibili, confrontati esatti da Prenota).
 insert into public.slots (specialty_id, facility_id, professional_id, starts_at, ends_at, status)
-select o.prestazione_id, o.struttura_id, o.medico_id,
+select p.branca, o.struttura_id, o.medico_id,
        ((d::date + time '08:30' + make_interval(mins => n * p.durata_min)) at time zone 'Europe/Rome'),
        ((d::date + time '08:30' + make_interval(mins => (n + 1) * p.durata_min)) at time zone 'Europe/Rome'),
        'available'
@@ -30,7 +31,7 @@ with conteggi as (select asl_id, count(*) n from test_server.pazienti_fittizi gr
        select s.id, s.specialty_id, s.facility_id, s.professional_id, s.starts_at, s.ends_at,
               st.asl_id, o.prob_prenotazione, random() r, 1 + floor(random() * c.n)::int k
        from public.slots s
-       join test_server.offerta o on o.struttura_id = s.facility_id and o.prestazione_id = s.specialty_id
+       join test_server.offerta o on o.struttura_id = s.facility_id and o.medico_id = s.professional_id
        join test_server.strutture st on st.id = s.facility_id
        join conteggi c on c.asl_id = st.asl_id
        where s.status = 'available'

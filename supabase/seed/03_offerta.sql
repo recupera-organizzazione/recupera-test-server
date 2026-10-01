@@ -18,17 +18,20 @@ base as (
   join test_server.pressione pr on pr.asl_id = s.asl_id and pr.prestazione_id = p.id
   where pr.prenotazioni > 0),
 calc as (select *, greatest(1, ceil(w / riempimento_obiettivo / 5.5))::int slot from base)
-select struttura_id, prestazione_id, 'MED-' || struttura_id || '-' || prestazione_id medico_id, i, slot, w,
-       least(0.98, w / (5 * slot + slot / 2))::numeric(4,3) prob
-from calc;
-
-insert into test_server.medici (id, nome)
-select medico_id,
+-- medico_id = nome del medico (professional_id dei record di Prenota), unico: struttura + medico
+-- individuano la prestazione.
+select struttura_id, prestazione_id,
        'Dott. ' || (array['Marco','Giulia','Antonio','Francesca','Giuseppe','Maria','Nicola','Anna',
                           'Vito','Rosa','Michele','Lucia','Domenico','Angela','Luca','Paola'])[1 + (i * 7) % 16]
        || ' ' || (array['Lorusso','De Santis','Ricci','Lomuscio','Caputo','Greco','Colella','Lattanzio',
                         'Fanizzi','Russo','Morea','Palumbo','Mastrangelo','Carella','Damiani','Zaccaria'])[1 + (i * 5 + i / 16) % 16]
-from nuova_offerta;
+         as medico_id,
+       i, slot, w,
+       least(0.98, w / (5 * slot + slot / 2))::numeric(4,3) prob
+from calc;
+
+insert into test_server.medici (id, nome)
+select medico_id, medico_id from nuova_offerta;
 
 insert into test_server.offerta (struttura_id, prestazione_id, medico_id, slot_giornalieri, prob_prenotazione)
 select struttura_id, prestazione_id, medico_id, slot, prob from nuova_offerta;
