@@ -62,12 +62,7 @@ npm install
 npm run dev            # http://localhost:3001
 ```
 
-Admin di test: **username `recupera`, password `recuperapw`**. Non c'è registrazione: altri admin si creano solo da SQL:
-
-```sql
-insert into test_server.admin_users (username, password_hash)
-values ('nome', extensions.crypt('password', extensions.gen_salt('bf', 10)));
-```
+**Admin condivisi con la dashboard:** il login legge `public.admin_users` (tabella di `recupera-dashboard`, hash scrypt), quindi lo stesso account entra in entrambi i pannelli. L'account `recupera` ha una password generata, non scritta nel repo: chiedila a chi gestisce il progetto. Non c'è registrazione: un admin nuovo si crea dalla dashboard con `ADMIN_USER=nome ADMIN_PASSWORD='…' npm run create:admin` (in `recupera-dashboard/backend`). `test_server.admin_users` resta solo come anagrafica locale, creata al primo login, per collegare le disdette all'admin.
 
 ## API (`/api/v1`)
 
@@ -97,7 +92,7 @@ Se non esistono prenotazioni reali o nessuna è compatibile risponde `404 nessun
 
 ```bash
 TOKEN=$(curl -s localhost:3001/api/v1/auth/login -H 'content-type: application/json' \
-  -d '{"username":"recupera","password":"recuperapw"}' | node -pe 'JSON.parse(require("fs").readFileSync(0)).token')
+  -d '{"username":"recupera","password":"<password>"}' | node -pe 'JSON.parse(require("fs").readFileSync(0)).token')
 curl -s -X POST localhost:3001/api/v1/test/disdici-casuale -H "authorization: Bearer $TOKEN"
 ```
 
@@ -105,9 +100,18 @@ curl -s -X POST localhost:3001/api/v1/test/disdici-casuale -H "authorization: Be
 
 Migrazioni in `supabase/migrations/` (già applicate al progetto `recupera`), poi i seed in ordine:
 
-1. `supabase/seed/01_catalogo_admin_pazienti.sql`: admin, ASL, prestazioni, strutture, pazienti fittizi.
+1. `supabase/seed/01_catalogo_admin_pazienti.sql`: ASL, prestazioni, strutture, pazienti fittizi.
 2. `supabase/seed/02_monitoraggio.sql`: il dataset completo (414 righe, 6 ASL, 69 prestazioni).
 3. `supabase/seed/03_offerta.sql`: offerta calibrata sul dataset (slot al giorno e probabilità di prenotazione).
 4. `supabase/seed/04_slot_prenotazioni.sql`: slot e prenotazioni, un anno alla volta per il timeout di 2 minuti: `psql "$DATABASE_URL" -v anno=2026 -f supabase/seed/04_slot_prenotazioni.sql` (poi 2027, 2028).
+
+### Collegamento al dataset della Regione
+
+Il dataset è pubblicato su dati.puglia.it con API CKAN: `package_show?id=monitoraggio-tempi-di-attesa` elenca le settimane (oggi 18, da luglio 2020 a ottobre 2024) e `datastore_search?resource_id=…` restituisce le righe in JSON, con le stesse colonne del CSV.
+
+- `supabase/functions/sync-dataset`: Edge Function che scarica le settimane nuove o modificate e le scrive nelle tabelle della dashboard (`public.prestazione`, `public.rilevazione_settimanale`) tramite `public.sincronizza_settimana_dataset` (migrazione `20261001180000_sync_dataset_puglia.sql`, già applicata). `?forza=1` riscarica tutto.
+- `public.dataset_fonte`: una riga per settimana sincronizzata (risorsa CKAN, data di inizio, ultima modifica).
+- **Da fare:** pubblicare la funzione (`supabase functions deploy sync-dataset`) e pianificarla con pg_cron ogni giorno. Finché non è pubblicata, la dashboard ha solo la settimana 07-11 ottobre 2024.
+- Legenda ufficiale: `*_TMAX` = prenotazioni con appuntamento **entro** il tempo massimo della classe (B 10 gg, D 30/60 gg, P 120 gg).
 
 `supabase/seed/reset.sql` cancella solo pazienti fittizi, utente di prova e le loro prenotazioni (prenotazioni e utenti reali restano).

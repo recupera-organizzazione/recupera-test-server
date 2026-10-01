@@ -1,11 +1,7 @@
--- Seed 1/4: catalogo Regione Puglia, admin di test, pazienti fittizi.
+-- Seed 1/4: catalogo Regione Puglia, pazienti fittizi.
+-- Gli admin non si creano qui: sono condivisi con la dashboard (public.admin_users, vedi README).
 -- Ordine: 01 catalogo, 02 dataset, 03 offerta, 04 slot e prenotazioni (dopo tutte le migrazioni).
 -- Non idempotente: per rigenerare usa prima supabase/seed/reset.sql.
-
--- Admin di test (nessuna registrazione: gli admin si creano solo così).
-insert into test_server.admin_users (username, password_hash)
-values ('recupera', extensions.crypt('recuperapw', extensions.gen_salt('bf', 10)))
-on conflict (username) do nothing;
 
 -- ASL Puglia (codici del dataset Min. Salute, come in recupera-dashboard).
 insert into test_server.asl (id, sigla, nome) values
