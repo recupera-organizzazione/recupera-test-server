@@ -8,6 +8,22 @@ import { statisticheRouter } from './routes/statistiche.js';
 import { testRouter } from './routes/test.js';
 
 export const app = express();
+
+// CORS solo per pagine aperte in locale (es. Live Server di VS Code sulla porta 5500).
+app.use((req, res, next) => {
+  const origine = req.get('origin');
+  if (origine && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origine)) {
+    res.set({
+      'Access-Control-Allow-Origin': origine,
+      'Access-Control-Allow-Headers': 'content-type, authorization',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      Vary: 'Origin',
+    });
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+  }
+  next();
+});
+
 app.use(express.json());
 // Frontend di test (public/index.html)
 app.use(express.static(new URL('../public', import.meta.url).pathname));

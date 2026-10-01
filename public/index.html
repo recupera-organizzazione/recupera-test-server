@@ -228,7 +228,8 @@ summary { cursor: pointer; color: var(--accento); margin-bottom: 8px; }
 
   <script>
 // Frontend di test del server CUP: niente framework, solo fetch + DOM.
-const API = '/api/v1';
+// Servita dal test-server (porta 3001): stesse origini. Aperta con Live Server o da file: punta al server locale.
+const API = (location.port === '3001' ? '' : 'http://localhost:3001') + '/api/v1';
 const $ = (sel) => document.querySelector(sel);
 
 let token = leggiToken();
